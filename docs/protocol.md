@@ -106,7 +106,10 @@ GET   /health
 POST  /capabilities/:name/invoke
 ```
 
-外加向 Control Plane 的三个动作：`register` / `heartbeat` / `update manifest`。
+外加向**本机 node agent** 报备（见 §6）。注意这里已经不是早期草案里的
+`register / heartbeat / update manifest` 三件套：heartbeat 被砍了——存活由
+tailnet（Node 层）加 agent 探 `/health`（Service 层）负责，push 心跳既多余
+又让 L2 反过来依赖 L3。
 
 **不要为了统一而把一切硬塞进 `/invoke`。** 特殊 Service 保留原生协议：
 
@@ -255,6 +258,23 @@ tailnet + 探 36908 自己拼出来。
 ```
 
 包装优先级 `MCP > CLI > HTTP`，但**第一版不做自动 fallback 编排**，手工声明即可。
+
+**`access` 数组是有序的：靠前的优先，靠后的是 fallback。** 同一个 protocol
+出现多次是合法且有用的：
+
+```json
+"access": [
+  { "protocol": "http", "base_url": "http://scott-mac.tailfb4720.ts.net:7777/v1" },
+  { "protocol": "http", "base_url": "http://100.88.227.56:7777/v1" }
+]
+```
+
+MagicDNS 名放前面（可读，IP 变了也不用改 manifest），tailnet IP 兜底。
+**这不是多余的**——调用方的 DNS 可能被劫持：实测一台装了 fake-ip 代理的 Mac
+会把 `iclaw-6e78b1` 解析到 `198.18.1.113`，直连 `100.75.105.79` 才通。
+只给 DNS 名的话，那台机器就永远连不上这个服务。
+
+调用方按顺序试，第一个连通的就用。
 
 `acp` 与前三者不是一回事：MCP/CLI/HTTP 面向 Capability 与 Resource，
 ACP 面向 Agent Runtime 的 Session 控制（`agent.session.new` / `prompt` / `cancel` /

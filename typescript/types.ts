@@ -62,6 +62,11 @@ export type Protocol = "mcp" | "http" | "cli" | "acp";
 /**
  * 同一组能力可以同时有多种 access，调用方不必关心底层是谁。
  * 包装优先级 MCP > CLI > HTTP，但第一版不做自动 fallback 编排，手工声明即可。
+ *
+ * **数组是有序的：靠前的优先，靠后的是 fallback。** 同一个 protocol 出现多次
+ * 是合法且有用的——比如 HTTP 先给 MagicDNS 名（可读、IP 变了也不用改），
+ * 再给 tailnet IP 兜底：调用方的 DNS 可能被代理软件劫持（实测一台装了
+ * fake-ip 代理的 Mac 会把 MagicDNS 名解析到 198.18.x.x），那时只有 IP 能用。
  */
 export interface AccessDescriptor {
   protocol: Protocol;
