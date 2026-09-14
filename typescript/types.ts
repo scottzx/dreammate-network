@@ -9,7 +9,11 @@
  * @packageDocumentation
  */
 
-export const PROTOCOL_VERSION = "0.1.0";
+/**
+ * 协议版本，与本包的 package.json 版本保持一致——两个版本号会让人永远猜不准
+ * 该看哪个。服务在 `manifest.metadata.protocol_version` 里报告它遵循的版本。
+ */
+export const PROTOCOL_VERSION = "0.3.0";
 
 /* ------------------------------------------------------------------ *
  * URI
@@ -87,6 +91,11 @@ export interface AccessDescriptor {
  * 与 docs/protocol.md §6 的表格一一对应，改动必须同步两边。
  */
 export const DEFAULT_PORTS = {
+  /**
+   * 本机 node agent（`@1agents/dreammate-node`）。**固定端口**，不可改：
+   * 它是整台机器对网络的唯一入口，外部节点靠"探 36908"找到这台机器上的一切。
+   */
+  "node-agent": 36908,
   "session-registry": 7777,
   "data-service": 7778,
   "control-plane": 7779,
@@ -125,6 +134,9 @@ export type ServiceKind =
  * 三层结构是 Node → Service → Capability / Resource，
  * 不要把 Capability 扁平铺到 Node 上。
  */
+/** 这个 Service 能被谁连上。省略时按 `network` 理解。 */
+export type Reachability = "localhost" | "network";
+
 export interface Service {
   id: string;
   name?: string | null;
@@ -134,6 +146,15 @@ export interface Service {
   capabilities: Capability[];
   resources?: ResourceDescriptor[];
   access?: AccessDescriptor[];
+  /**
+   * 只监听回环的服务，外部节点发现得了但连不上。node agent 如实转述这个
+   * 声明而**不做代理**——调用方看到 `localhost` 就知道不用白跑一趟。
+   */
+  reachability?: Reachability;
+  /** 实际监听端口。不必等于 {@link DEFAULT_PORTS} 里的默认值。 */
+  port?: number | null;
+  /** 存活探测路径，默认 `/health`。 */
+  health?: string | null;
   metadata?: Record<string, unknown>;
 }
 

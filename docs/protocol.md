@@ -142,6 +142,7 @@ pull 要知道探哪儿，所以端口是公共词汇的一部分：
 
 | 端口 | Service | 层 |
 |------|---------|-----|
+| **36908** | **`node-agent`（dreammate-node）** | **本机基础设施** |
 | 7777 | `session-registry`（session-reader） | L2 |
 | 7778 | `data-service` | L2 |
 | 7779 | `control-plane` | L3 |
@@ -151,6 +152,61 @@ pull 要知道探哪儿，所以端口是公共词汇的一部分：
 这是**默认值，不是强制**。服务可以跑在别的端口，代价是探测发现不了它，
 得由它自己 `POST /nodes/register` 告知——register 因此是可选的加速/兜底，
 不是必需品。
+
+### 本机 node agent
+
+每台机器跑一个 `@1agents/dreammate-node`，固定监听 **36908**。它是这台机器
+对网络的唯一入口：
+
+```
+        Control Plane / 任意节点
+                  │  探 36908（每台机器只探一个端口）
+                  ▼
+        node-agent :36908
+         ├─ GET  /manifest      本机聚合视图：节点身份 + 所有已报备的服务
+         ├─ GET  /health
+         ├─ GET  /services      各服务的存活与可达性
+         └─ POST /services      服务报备（**仅接受 localhost**）
+                  ▲
+      ┌───────────┴───────────┐  localhost 报备
+ session-reader :7777    task-service :xxxx
+```
+
+这把 pull 探测的成本从「N 个节点 × M 个端口」降到「N × 1」。
+
+**报备是可选的。** 服务不报备也能工作，只是外部得靠约定端口才找得到它。
+报备时必须声明**可达性**：
+
+| `reachability` | 含义 |
+|---|---|
+| `localhost` | 只监听回环，外部节点发现得了但连不上 |
+| `network` | 监听 0.0.0.0 或 tailnet 地址，外部可直连 |
+
+agent 如实转述这个声明，**不做代理**。调用方看到 `localhost` 就知道这个能力
+只对本机开放，不用白跑一趟。
+
+> ⚠️ `POST /services` 只接受来自回环的请求。否则网络上任何人都能往你的节点
+> 里塞一个假服务，把调用方引到别处去。
+
+### Control Plane 不是一个进程
+
+node 注册与探活下沉成了每台机器的基础设施（就是上面的 agent），原本设想中
+Control Plane 的其余职责——Task、Agent 编排、Execution 账本——**降级为平级的
+普通服务**，各自独立起进程、各自向本机 agent 报备。
+
+```
+以前：Control Plane = Node Registry + Execution Ledger + Task + Orchestrator
+                      （一个大进程）
+
+现在：node-agent      = Node Registry + 探活        （每机一个，基础设施）
+      task-service    ┐
+      agent-service   ├ 平级服务，各自解耦运行，都向本机 agent 报备
+      execution-*     ┘
+```
+
+好处是任何一个服务挂掉都不会让整个控制面消失，也不存在"必须先起 Control Plane
+才能用"的启动顺序。代价是全网视图需要有人聚合——那也只是另一个服务，它靠
+tailnet + 探 36908 自己拼出来。
 
 ### 节点身份取自 tailnet
 
