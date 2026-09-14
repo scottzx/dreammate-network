@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreammate.work/schemas/session-ref.schema.json",
+  "title": "DreamMate Session Reference",
+  "description": "跨节点引用一个 Session 的方式：session://<node>/<runtime>/<session_id>。设备类型不影响 Session Graph——session://iphone/yima/abc123 与 session://mac/codex/01a0907c 是同等级实体，引用关系完全对称。",
+  "type": "object",
+  "required": ["uri"],
+  "properties": {
+    "uri": {
+      "type": "string",
+      "pattern": "^session://[^/]+/[^/]+/.+$",
+      "description": "规范形式 session://<node>/<runtime>/<session_id>。",
+      "examples": ["session://mac/codex/01a0907c", "session://iphone/yima/abc123"]
+    },
+    "node": {
+      "type": "string",
+      "description": "URI 第一段，与 node manifest 的 name 或 node_id 对应。冗余字段，便于消费方免解析。"
+    },
+    "runtime": {
+      "type": "string",
+      "description": "URI 第二段。",
+      "examples": ["codex", "claude", "antigravity", "yima"]
+    },
+    "session_id": {
+      "type": "string",
+      "description": "URI 第三段，节点本地的 session id。"
+    },
+    "relation": {
+      "type": "string",
+      "enum": ["references", "opens", "initiates", "delegates", "produces", "accesses"],
+      "description": "这条引用代表哪种边。所有边由调用事件实时写入（B 调用 sessions.read(A) 时就写 B --references--> A），不靠后台扫库猜 DAG。注意整体 Work Graph 不是 DAG：Session 之间完全可以成环，DAG 只是某些投影视图。"
+    },
+    "observed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "这条边被观察到的时刻。底层只保存事实，不提前做价值判断。"
+    }
+  },
+  "examples": [
+    {
+      "uri": "session://mac/codex/01a0907c",
+      "node": "mac",
+      "runtime": "codex",
+      "session_id": "01a0907c"
+    },
+    {
+      "uri": "session://iphone/yima/abc123",
+      "node": "iphone",
+      "runtime": "yima",
+      "session_id": "abc123",
+      "relation": "references",
+      "observed_at": "2026-09-14T10:05:00Z"
+    }
+  ]
+}

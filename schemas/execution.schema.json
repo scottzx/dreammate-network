@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreammate.work/schemas/execution.schema.json",
+  "title": "DreamMate Execution",
+  "description": "现实中实际发生的一次工作行为。不是只有 Agent 才产生 Execution。注意两条硬规则：(1) 这里没有 task_id——Task 关联是独立的 many-to-many link，绝不允许 executions.task_id NOT NULL；(2) 大量字段可空是刻意的，一个 capability_invocation 既没有 session 也没有 runtime。粒度边界：跨系统/跨调度边界才升级为 Execution，Session 内的低层 tool call 记为 Session Event，否则一个 338 次 tool call 的 Codex Session 会生成 338 个 Execution，Work Graph 立刻失去意义。",
+  "type": "object",
+  "required": ["id", "type", "created_at", "status"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "agent_execution",
+        "capability_invocation",
+        "device_job",
+        "resource_access",
+        "human_action"
+      ],
+      "description": "agent_execution 有 Node/Runtime/Session；capability_invocation 有 Node/Service/Capability 但无 Session；resource_access 读远端资源；human_action 是人在现实中的动作。"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "finished_at": { "type": ["string", "null"], "format": "date-time" },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "waiting_for_user", "completed", "failed"],
+      "description": "waiting_for_user 是手机接入后必须新增的一类状态：请求用户在现实世界做某个动作（确认日程、选联系人、授权 iOS 权限）。有了它，总管才能直接回答『3 个任务正在执行，1 个等待你确认』。"
+    },
+    "requires_user_action": {
+      "type": ["string", "null"],
+      "description": "status=waiting_for_user 时向用户描述需要他做什么。",
+      "examples": ["请选择要添加到日历的地点"]
+    },
+    "initiated_by_session_id": {
+      "type": ["string", "null"],
+      "description": "发起这次执行的 Session（通常是总管 Session）。写入时同时产生一条 Session --initiates--> Execution 的边。"
+    },
+    "node_id": { "type": ["string", "null"], "description": "在哪里执行。" },
+    "service_id": { "type": ["string", "null"], "description": "用了该 Node 上的哪个 Service。" },
+    "capability": { "type": ["string", "null"], "description": "调用了哪个 Capability。" },
+    "agent_runtime": {
+      "type": ["string", "null"],
+      "description": "用什么 Agent harness 执行。与 node / model / session 正交——同一个 runtime 换模型换节点仍是同一个 runtime。",
+      "examples": ["codex", "claude", "yima"]
+    },
+    "model": {
+      "type": ["string", "null"],
+      "description": "这次推理用谁。",
+      "examples": ["deepseek-chat"]
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "description": "该 Execution 打开的 Session，仅 agent_execution 才有。可以是本地 id 或 session:// URI。写入时产生 Execution --opens--> Session 的边。"
+    },
+    "resource_uri": {
+      "type": ["string", "null"],
+      "description": "type=resource_access 时访问的资源。写入时产生 Execution --accesses--> Resource 的边。",
+      "examples": ["recording://tingqi-01/abc", "transcript://tingqi-01/abc"]
+    },
+    "parent_execution_id": {
+      "type": ["string", "null"],
+      "description": "父执行。子 Agent 派生时写入，形成 Execution --delegates--> Execution 的边。"
+    },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "examples": [
+    {
+      "id": "E27",
+      "type": "capability_invocation",
+      "created_at": "2026-09-14T10:00:00Z",
+      "status": "completed",
+      "node_id": "iphone_xxx",
+      "service_id": "reminders",
+      "capability": "reminders.create"
+    },
+    {
+      "id": "E28",
+      "type": "resource_access",
+      "created_at": "2026-09-14T10:01:00Z",
+      "status": "completed",
+      "node_id": "recorder_xxx",
+      "service_id": "recordings",
+      "capability": "recordings.list",
+      "resource_uri": "recording://tingqi-01/abc"
+    },
+    {
+      "id": "E29",
+      "type": "agent_execution",
+      "created_at": "2026-09-14T10:02:00Z",
+      "status": "running",
+      "node_id": "node_yyy",
+      "agent_runtime": "codex",
+      "model": "deepseek-chat",
+      "session_id": "session://mac/codex/01a0907c"
+    },
+    {
+      "id": "E5",
+      "type": "capability_invocation",
+      "created_at": "2026-09-14T10:03:00Z",
+      "status": "waiting_for_user",
+      "requires_user_action": "请选择要添加到日历的地点",
+      "node_id": "iphone_xxx",
+      "service_id": "calendar",
+      "capability": "calendar.create"
+    }
+  ]
+}

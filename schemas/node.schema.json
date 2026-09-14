@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreammate.work/schemas/node.schema.json",
+  "title": "DreamMate Node Manifest",
+  "description": "一个 Node 对外声明自己的身份、在线状态与所提供的 Services。Node ≠ Agent：Agent Runtime 只是 Node 可以承载的一种 Service，不是 Node 存在的必要条件。由节点侧 GET /manifest 返回，并通过 POST /nodes/register 上报给 Control Plane。",
+  "type": "object",
+  "required": ["node_id", "name", "type", "services"],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "网络内全局唯一且稳定的节点标识，重启不变。",
+      "minLength": 1,
+      "examples": ["node_yyy", "iphone_xxx", "recorder_xxx"]
+    },
+    "name": {
+      "type": "string",
+      "description": "人类可读名称。",
+      "minLength": 1,
+      "examples": ["scott-mac", "Scott-iPhone", "听器-01", "dgx-spark"]
+    },
+    "type": {
+      "type": "string",
+      "description": "节点形态。故意不用 enum 封死——任何硬件都应该能进入同一张网络。已知取值：macos / ios / linux / windows / recorder / gpu。",
+      "minLength": 1,
+      "examples": ["macos", "ios", "recorder", "gpu"]
+    },
+    "tailscale_name": {
+      "type": ["string", "null"],
+      "description": "tailnet 内的寻址名。第一版所有节点通过 Tailscale 统一寻址。"
+    },
+    "online": {
+      "type": "boolean",
+      "description": "由 Control Plane 依据 heartbeat 维护；节点自报时可省略。"
+    },
+    "services": {
+      "type": "array",
+      "description": "该节点上的 Service 列表。可以为空数组——一个还没声明任何能力的节点仍然是合法节点。",
+      "items": { "$ref": "service.schema.json" }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "节点级自由扩展字段（如 GPU 显存、架构、固件版本）。协议不解释其内容。",
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "node_id": "node_yyy",
+      "name": "scott-mac",
+      "type": "macos",
+      "tailscale_name": "scott-mac",
+      "online": true,
+      "services": [
+        {
+          "id": "session-registry",
+          "kind": "session_registry",
+          "capabilities": ["sessions.list", "sessions.search", "sessions.read", "sessions.graph"],
+          "access": [{ "protocol": "http", "base_url": "http://scott-mac:7777/v1" }]
+        },
+        { "id": "shell", "capabilities": ["shell.exec"] }
+      ]
+    },
+    {
+      "node_id": "iphone_xxx",
+      "name": "Scott-iPhone",
+      "type": "ios",
+      "services": [
+        { "id": "calendar", "capabilities": ["calendar.read", "calendar.create"] },
+        { "id": "reminders", "capabilities": ["reminders.read", "reminders.create"] }
+      ]
+    },
+    {
+      "node_id": "recorder_xxx",
+      "name": "听器-01",
+      "type": "recorder",
+      "services": [
+        { "id": "recordings", "capabilities": ["recordings.list", "recordings.read"] }
+      ]
+    }
+  ]
+}

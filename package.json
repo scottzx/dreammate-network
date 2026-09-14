@@ -1,0 +1,23 @@
+{
+  "name": "dreammate-network",
+  "version": "0.1.0",
+  "description": "DreamMate Network L0 协议包：schema + types，零依赖，不含业务逻辑。",
+  "private": true,
+  "type": "module",
+  "types": "./typescript/types.ts",
+  "exports": {
+    ".": {
+      "types": "./typescript/types.ts",
+      "default": "./typescript/types.ts"
+    },
+    "./schemas/*.json": "./schemas/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "schemas",
+    "typescript",
+    "docs",
+    "README.md"
+  ],
+  "sideEffects": false
+}

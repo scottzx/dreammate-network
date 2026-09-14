@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreammate.work/schemas/service.schema.json",
+  "title": "DreamMate Service",
+  "description": "Node 上的一组能力聚合。三层结构是 Node → Service → Capability / Resource，不要把 Capability 扁平铺到 Node 上。Agent Runtime 是 Service 的一种特殊 kind。",
+  "type": "object",
+  "required": ["id", "capabilities"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Service 在所属 Node 内唯一。",
+      "minLength": 1,
+      "examples": ["session-registry", "reminders", "recordings", "agent-runtime"]
+    },
+    "name": {
+      "type": ["string", "null"],
+      "description": "人类可读名称，可省略。"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Service 类型。generic 之外的几种在传输层保留原生协议（见 protocol.md §5），不强行塞进 /capabilities/:name/invoke。",
+      "enum": ["generic", "agent_runtime", "session_registry", "resource_provider", "mcp"],
+      "default": "generic"
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "该 Service 能做什么。第一版就是点分命名的字符串，不带权限/可用性等元数据。可以为空数组（纯 Resource Provider）。",
+      "items": { "type": "string", "minLength": 1 },
+      "examples": [["sessions.list", "sessions.read"], ["reminders.create"], ["recordings.list", "recording.read"]]
+    },
+    "resources": {
+      "type": "array",
+      "description": "该 Service 拥有什么（可选，声明资源 URI 的 scheme 而非逐条枚举）。Capability=能做什么，Resource=拥有什么，两者不要混：检索侧走 resource.search/read，调度侧走 capability.invoke。",
+      "items": {
+        "type": "object",
+        "required": ["scheme"],
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "description": "资源 URI 的 scheme。",
+            "examples": ["recording", "transcript", "speaker", "session"]
+          },
+          "description": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "access": {
+      "type": "array",
+      "description": "怎么访问这个 Service。传输方式只出现在这里，绝不进数据模型——不存在所谓 MCP Capability / CLI Capability。同一组能力可以同时有多种 access，调用方不必关心底层是谁。包装优先级 MCP > CLI > HTTP，但第一版不做自动 fallback 编排，手工声明即可。",
+      "items": { "$ref": "#/$defs/access" }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Service 级自由扩展字段。协议不解释其内容。",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "access": {
+      "type": "object",
+      "title": "Access Descriptor",
+      "required": ["protocol"],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": ["mcp", "http", "cli", "acp"],
+          "description": "acp 只用于 kind=agent_runtime 的 Session 控制，与前三者不是一回事：MCP/CLI/HTTP 面向 Capability / Resource，ACP 面向 Agent Runtime / Session Control。"
+        },
+        "base_url": {
+          "type": "string",
+          "description": "protocol=http 时的服务基址。",
+          "examples": ["http://scott-mac:7777/v1"]
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "protocol=http 时单个 capability 的相对路由。",
+          "examples": ["GET /transcripts/:id"]
+        },
+        "tool": {
+          "type": "string",
+          "description": "protocol=mcp 时对应的 tool 名。",
+          "examples": ["transcript_read"]
+        },
+        "server": {
+          "type": "string",
+          "description": "protocol=mcp 时的 MCP server 标识。"
+        },
+        "command": {
+          "type": "string",
+          "description": "protocol=cli 时的命令。",
+          "examples": ["tingqi transcript get", "1session overview"]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "id": "transcripts",
+      "capabilities": ["transcript.read"],
+      "access": [
+        { "protocol": "mcp", "tool": "transcript_read" },
+        { "protocol": "http", "endpoint": "GET /transcripts/:id" },
+        { "protocol": "cli", "command": "tingqi transcript get" }
+      ]
+    },
+    {
+      "id": "agent-runtime",
+      "kind": "agent_runtime",
+      "capabilities": [
+        "agent.session.new",
+        "agent.session.prompt",
+        "agent.session.cancel",
+        "agent.session.status",
+        "agent.session.resume"
+      ],
+      "access": [{ "protocol": "acp" }]
+    }
+  ]
+}
