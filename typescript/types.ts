@@ -13,7 +13,7 @@
  * 协议版本，与本包的 package.json 版本保持一致——两个版本号会让人永远猜不准
  * 该看哪个。服务在 `manifest.metadata.protocol_version` 里报告它遵循的版本。
  */
-export const PROTOCOL_VERSION = "0.3.0";
+export const PROTOCOL_VERSION = "0.3.1";
 
 /* ------------------------------------------------------------------ *
  * URI

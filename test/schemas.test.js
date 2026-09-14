@@ -150,3 +150,12 @@ test('node-agent 的端口是固定的 36908', () => {
   const doc = fs.readFileSync(path.join(root, 'docs', 'protocol.md'), 'utf8');
   assert.match(doc, /36908/);
 });
+
+test('PROTOCOL_VERSION 与包版本一致', () => {
+  // 两个版本号会让人永远猜不准该看哪个，所以强制对齐。这条测试的作用是
+  // 在 npm version 之后提醒你改常量——之前就漂过一次，manifest 一直在报
+  // 错的协议版本，而没有任何东西会告诉你。
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const declared = types.match(/export const PROTOCOL_VERSION = "([^"]+)"/)?.[1];
+  assert.equal(declared, pkg.version, 'npm version 之后别忘了同步 types.ts 里的 PROTOCOL_VERSION');
+});
