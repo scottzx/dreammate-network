@@ -1,23 +1,51 @@
 {
-  "name": "dreammate-network",
+  "name": "@1agents/dreammate-network",
   "version": "0.1.0",
-  "description": "DreamMate Network L0 协议包：schema + types，零依赖，不含业务逻辑。",
-  "private": true,
+  "description": "DreamMate Network L0 协议包：schema + types，零运行时依赖，不含业务逻辑。",
+  "keywords": [
+    "dreammate",
+    "capability-network",
+    "node-manifest",
+    "json-schema",
+    "protocol"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scottzx/dreammate-network.git"
+  },
   "type": "module",
-  "types": "./typescript/types.ts",
+  "main": "./dist/typescript/types.js",
+  "types": "./dist/typescript/types.d.ts",
   "exports": {
     ".": {
-      "types": "./typescript/types.ts",
-      "default": "./typescript/types.ts"
+      "types": "./dist/typescript/types.d.ts",
+      "import": "./dist/typescript/types.js"
     },
     "./schemas/*.json": "./schemas/*.json",
     "./package.json": "./package.json"
   },
   "files": [
+    "dist",
     "schemas",
-    "typescript",
     "docs",
     "README.md"
   ],
-  "sideEffects": false
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/schemas.test.js",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
 }

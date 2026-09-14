@@ -1,7 +1,7 @@
 # DreamMate Network Protocol v0.1.0
 
 > L0 协议层。**零依赖，不含业务逻辑。**
-> 设计依据：[`../../docs/architecture/dreammate-network/`](../../docs/architecture/dreammate-network/)（10 篇设计册）
+> 设计依据：1agents 工作区的 `docs/architecture/dreammate-network/`（10 篇设计册，不随本包发布）
 > 本文件只写「协议是什么」，不写「为什么这么设计」——后者在设计册里。
 
 ## 1. 定位
@@ -218,5 +218,4 @@ npx -p ajv-cli@5 -p ajv-formats@2 ajv validate --spec=draft2020 -c ajv-formats \
 ## 11. 版本
 
 `PROTOCOL_VERSION = "0.1.0"`。v0.x 期间 schema 可能破坏性变更，
-以 [`06-实施路线图`](../../docs/architecture/dreammate-network/06-实施路线图.md)
-的 M1–M5 验收结果为准收敛。
+以设计册 06-实施路线图的 M1–M5 验收结果为准收敛。

@@ -51,8 +51,8 @@ L4 ──→ L3 ──→ L2 / L1 ──→ L0
 
 ## 出处
 
-设计册在 [`../docs/architecture/dreammate-network/`](../docs/architecture/dreammate-network/)，
-本包对应迁移步骤 **S1**（见 [09-仓库拆分与依赖边界 §8](../docs/architecture/dreammate-network/09-仓库拆分与依赖边界.md)）。
+设计册是 1agents 工作区里的 `docs/architecture/dreammate-network/`（10 篇，不随本包发布）。
+本包对应其中迁移步骤 **S1**（09-仓库拆分与依赖边界 §8）。
 
 下一步是 **S2**（`modules/*` 上移）与 **S3**（session-reader 加 `1session serve` + `/manifest`）——
 S1–S3 就足够跑出 M1 + M2，不需要等全部拆完。
