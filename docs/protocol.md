@@ -118,7 +118,70 @@ POST  /capabilities/:name/invoke
 
 Capability Manifest 只负责告诉调用方：**我有什么，以及应该怎么访问。**
 
-## 6. 传输只出现在 `access` 里
+## 6. 节点与服务的发现
+
+发现分两层，各有各的事实源：
+
+```
+有哪些节点         ← tailnet（tailscale status --json）
+节点是不是开着     ← tailnet 的 Online
+节点上有什么服务   ← 探测约定端口的 GET /manifest
+服务还活着吗       ← 定期探 GET /health
+```
+
+**方向永远是 L3 → L2（pull），不是 L2 → L3（push）。** 服务不需要知道
+Control Plane 存在，也不需要心跳定时器；Control Plane 挂了，服务毫无感觉。
+这与「上层通过 HTTP 调用下层」的单向依赖一致。
+
+⚠️ **Node 在线 ≠ Service 在线。** tailnet 的 `Online` 只说明机器开着；
+进程被 kill 了它照样报在线。Service 级的存活只能靠探 `/health`。
+
+### 约定端口
+
+pull 要知道探哪儿，所以端口是公共词汇的一部分：
+
+| 端口 | Service | 层 |
+|------|---------|-----|
+| 7777 | `session-registry`（session-reader） | L2 |
+| 7778 | `data-service` | L2 |
+| 7779 | `control-plane` | L3 |
+| 7780 | `tingqi-adapter` 等 Resource Provider | L2 |
+| 7781–7789 | 预留给后续 L2 服务 | — |
+
+这是**默认值，不是强制**。服务可以跑在别的端口，代价是探测发现不了它，
+得由它自己 `POST /nodes/register` 告知——register 因此是可选的加速/兜底，
+不是必需品。
+
+### 节点身份取自 tailnet
+
+节点的 `node_id` / `name` / `type` 应该直接用 tailnet 的事实，而不是自己生成：
+
+| Manifest 字段 | tailscale status 的来源 |
+|---|---|
+| `node_id` | `Self.ID`（稳定，重启不变） |
+| `name` | `Self.DNSName` 的第一段 |
+| `type` | `Self.OS`（macOS→macos，iOS→ios，…） |
+| `tailscale_name` | `Self.DNSName` |
+
+> ⚠️ **不要用 `HostName`。** iOS 设备的 HostName 全是 `localhost`——实测一个
+> 11 节点的 tailnet 里只有 9 个 HostName 唯一，而 DNSName 是 11/11 唯一且可读
+> （`iphone-15-pro`）。用 HostName 做 `session://<node>/...` 的第一段，几台
+> 手机接进来就会全部撞在 `session://localhost/...`。
+
+本机所有服务读同一份 tailnet 状态，所以不会各自生成 id 把一台机器裂成几个 Node。
+拿不到 tailscale 时可以回退到本地身份，但要在 `metadata.identity_source` 里
+如实标明，因为回退身份的 `name` 不保证跨设备唯一。
+
+### `/manifest` 永远是部分视图
+
+一个节点上跑着多个服务时，每个服务的 `/manifest` 只报**自己**那一个 service，
+但 `node_id` 是相同的。完整的节点视图（把同一 `node_id` 下的 services 合并）
+只存在于 Control Plane 的 `GET /nodes/:id/manifest`。
+
+消费方看到两份 `node_id` 相同、`services` 不同的 manifest 是**正常的**，
+不是冲突。
+
+## 7. 传输只出现在 `access` 里
 
 数据模型里**不存在** MCP Capability / CLI Capability / HTTP Capability。
 一个 Capability 可以有多种 access，调用方不关心底层是谁：
@@ -141,7 +204,7 @@ Capability Manifest 只负责告诉调用方：**我有什么，以及应该怎�
 ACP 面向 Agent Runtime 的 Session 控制（`agent.session.new` / `prompt` / `cancel` /
 `status` / `resume`）。
 
-## 7. 图的边由事件实时写入
+## 8. 图的边由事件实时写入
 
 不跑后台扫库猜 DAG。调用发生时就写边：
 
@@ -156,7 +219,7 @@ ACP 面向 Agent Runtime 的 Session 控制（`agent.session.new` / `prompt` / `
 
 整体 Work Graph **不是** DAG（Session 之间可以成环）；DAG 只是它的投影视图。
 
-## 8. Execution 的粒度边界
+## 9. Execution 的粒度边界
 
 | 层级 | 记录为 |
 |------|--------|
@@ -166,7 +229,7 @@ ACP 面向 Agent Runtime 的 Session 控制（`agent.session.new` / `prompt` / `
 否则一个 338 次 tool call 的 Codex Session 会生成 338 个 Execution，
 Work Graph 立刻失去意义。
 
-## 9. 怎么消费本包
+## 10. 怎么消费本包
 
 **TypeScript**（工作区内直接引源码，不引入构建链，从而保持真正零依赖）：
 
@@ -205,7 +268,7 @@ npx -p ajv-cli@5 -p ajv-formats@2 ajv validate --spec=draft2020 -c ajv-formats \
 
 每个 schema 自带 `examples`，可以直接抽出来当冒烟用例跑。
 
-## 10. 第一版明确不做
+## 11. 第一版明确不做
 
 - ❌ 不写任何业务逻辑（本包只是公共语言）
 - ❌ Capability 不带 provider / permission / availability 元数据
@@ -215,7 +278,7 @@ npx -p ajv-cli@5 -p ajv-formats@2 ajv validate --spec=draft2020 -c ajv-formats \
 - ❌ 不要求所有能力统一成 MCP
 - ❌ 不存 `planned = true/false`（由时间事实推导）
 
-## 11. 版本
+## 12. 版本
 
 `PROTOCOL_VERSION = "0.1.0"`。v0.x 期间 schema 可能破坏性变更，
 以设计册 06-实施路线图的 M1–M5 验收结果为准收敛。

@@ -117,3 +117,19 @@ test('SessionURI 的形状 schema 与 types.ts 说的是同一件事', () => {
   assert.ok(!re.test('session://mac/codex'), '三段缺一不可');
   assert.ok(!re.test('recording://tingqi-01/abc'));
 });
+
+test('DEFAULT_PORTS 与 protocol.md 的端口表一致', () => {
+  const doc = fs.readFileSync(path.join(root, 'docs', 'protocol.md'), 'utf8');
+  const declared = [...types.matchAll(/"([a-z-]+)":\s*(\d{4}),/g)].map((m) => [m[1], Number(m[2])]);
+  assert.ok(declared.length >= 4, 'types.ts 里没找到端口表');
+  for (const [service, port] of declared) {
+    // 文档表格里必须有同一行，否则两边就漂了。
+    const row = new RegExp(`\\|\\s*${port}\\s*\\|[^|]*\`${service}\``);
+    assert.match(doc, row, `protocol.md 缺 ${service}=${port} 这一行`);
+  }
+});
+
+test('约定端口互不冲突', () => {
+  const ports = [...types.matchAll(/"[a-z-]+":\s*(\d{4}),/g)].map((m) => Number(m[1]));
+  assert.equal(new Set(ports).size, ports.length, '两个服务抢同一个端口');
+});

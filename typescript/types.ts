@@ -74,6 +74,37 @@ export interface AccessDescriptor {
 }
 
 /* ------------------------------------------------------------------ *
+ * 发现
+ * ------------------------------------------------------------------ */
+
+/**
+ * 约定端口。发现是 pull 的（Control Plane 探测节点的 `/manifest` 与
+ * `/health`），所以「哪个服务在哪个端口」必须是公共词汇，否则探测方无从下手。
+ *
+ * 这是**默认值，不是强制**：服务可以跑在别的端口，代价是探测发现不了它，
+ * 得由它自己 `POST /nodes/register` 告知。
+ *
+ * 与 docs/protocol.md §6 的表格一一对应，改动必须同步两边。
+ */
+export const DEFAULT_PORTS = {
+  "session-registry": 7777,
+  "data-service": 7778,
+  "control-plane": 7779,
+  "tingqi-adapter": 7780,
+} as const;
+
+export type WellKnownService = keyof typeof DEFAULT_PORTS;
+
+/**
+ * 节点身份是从哪来的。
+ *
+ * `tailscale` 表示取自 tailnet（`Self.ID` / `DNSName` / `OS`），此时 `name`
+ * 跨设备唯一。`local` 是回退，`name` **不保证唯一**——iOS 的 hostname 全是
+ * `localhost`——只适合单机自用。放进 `metadata.identity_source` 如实告诉对端。
+ */
+export type IdentitySource = "tailscale" | "local";
+
+/* ------------------------------------------------------------------ *
  * Node / Service
  * ------------------------------------------------------------------ */
 

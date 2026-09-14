@@ -28,7 +28,7 @@ dreammate-network/
 import type { NodeManifest, Execution, SessionURI } from "dreammate-network";
 ```
 
-Go / Swift 侧读同一份 `schemas/*.json`。详见 [`docs/protocol.md` §9](docs/protocol.md)。
+Go / Swift 侧读同一份 `schemas/*.json`。详见 [`docs/protocol.md` §10](docs/protocol.md)。
 
 ## 三条不能破的规则
 
