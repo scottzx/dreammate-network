@@ -13,7 +13,7 @@
  * 协议版本，与本包的 package.json 版本保持一致——两个版本号会让人永远猜不准
  * 该看哪个。服务在 `manifest.metadata.protocol_version` 里报告它遵循的版本。
  */
-export const PROTOCOL_VERSION = "0.3.2";
+export const PROTOCOL_VERSION = "0.4.0";
 
 /* ------------------------------------------------------------------ *
  * URI
@@ -142,13 +142,54 @@ export type ServiceKind =
 /** 这个 Service 能被谁连上。省略时按 `network` 理解。 */
 export type Reachability = "localhost" | "network";
 
+/**
+ * 方法契约描述：定义供大模型与 RPC 调用的方法接口。
+ */
+export interface MethodDescriptor {
+  /** 方法的业务功能描述，供智能体理解意图。 */
+  description: string;
+  /**
+   * 入参 JSON Schema（必须为 object 结构）。
+   * 包含 properties、required 等标准 JSON Schema 字段。
+   */
+  parameters?: {
+    type?: 'object';
+    properties?: Record<string, unknown>;
+    required?: string[];
+    [key: string]: unknown;
+  } | Record<string, unknown>;
+  /** 返回值结构说明。 */
+  returns?: Record<string, unknown>;
+}
+
+/**
+ * 技能 SOP 指南描述：提供大模型在复杂任务下的多步编排与避坑指南。
+ */
+export interface SkillDescriptor {
+  /** 技能唯一标识名。 */
+  name: string;
+  /** 技能触发场景描述。 */
+  description: string;
+  /** Markdown 格式的完整 SOP 操作指南。 */
+  sop: string;
+  /** 是否具备可跨节点打包下载的本地技能包。 */
+  has_package?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Service {
   id: string;
   name?: string | null;
   /** 省略等同于 `"generic"` */
   kind?: ServiceKind;
-  /** 可以为空数组（纯 Resource Provider）或省略 */
+  /**
+   * @deprecated 历史遗留字段，新服务请直接使用 `methods` 与 `skills`。
+   */
   capabilities?: Capability[];
+  /** 可供调用的机器方法契约集合。 */
+  methods?: Record<string, MethodDescriptor>;
+  /** 配套的领域业务 SOP 与技能指南。 */
+  skills?: Record<string, SkillDescriptor>;
   resources?: ResourceDescriptor[];
   access?: AccessDescriptor[];
   /**

@@ -40,24 +40,68 @@
     },
     "capabilities": {
       "type": "array",
-      "description": "该 Service 能做什么。第一版就是点分命名的字符串，不带权限/可用性等元数据。可以为空数组（纯 Resource Provider）。",
+      "description": "@deprecated 历史遗留字段，新服务请优先使用 methods 与 skills。可以为空数组（纯 Resource Provider）。",
       "items": {
         "type": "string",
         "minLength": 1
-      },
-      "examples": [
-        [
-          "sessions.list",
-          "sessions.read"
+      }
+    },
+    "methods": {
+      "type": "object",
+      "description": "该 Service 提供的可调用 RPC 方法集合，明确参数与返回值契约。",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "description"
         ],
-        [
-          "reminders.create"
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "该方法的业务功能描述。"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "入参 JSON Schema 定义（必须是 object 结构）。"
+          },
+          "returns": {
+            "type": "object",
+            "description": "返回值结构说明。"
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "object",
+      "description": "该 Service 配套的领域业务 SOP 与操作指南（Markdown 格式）。",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "sop"
         ],
-        [
-          "recordings.list",
-          "recording.read"
-        ]
-      ]
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "技能唯一标识名。"
+          },
+          "description": {
+            "type": "string",
+            "description": "技能触发场景说明。"
+          },
+          "sop": {
+            "type": "string",
+            "description": "包含步骤指导的完整 Markdown SOP 正文。"
+          },
+          "has_package": {
+            "type": "boolean",
+            "description": "是否具备可供跨节点打包下载的完整本地技能包。"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
     },
     "resources": {
       "type": "array",
