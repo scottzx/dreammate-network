@@ -5,8 +5,7 @@
   "description": "Node 上的一组能力聚合。三层结构是 Node → Service → Capability / Resource，不要把 Capability 扁平铺到 Node 上。Agent Runtime 是 Service 的一种特殊 kind。",
   "type": "object",
   "required": [
-    "id",
-    "capabilities"
+    "id"
   ],
   "properties": {
     "id": {
