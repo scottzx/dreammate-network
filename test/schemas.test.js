@@ -85,6 +85,7 @@ test('schema 与 types.ts 的枚举保持同步', () => {
     [readSchema('service').properties.kind.enum, /export type ServiceKind =([\s\S]*?);/],
     [readSchema('session-ref').properties.relation.enum, /export type EdgeRelation =([\s\S]*?);/],
     [readSchema('service').$defs.access.properties.protocol.enum, /export type Protocol =([\s\S]*?);/],
+    [readSchema('service').properties.execution.enum, /export type ExecutionMode =([\s\S]*?);/],
   ];
   for (const [values, pattern] of pairs) {
     const declared = types.match(pattern)?.[1] ?? '';

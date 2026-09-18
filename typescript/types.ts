@@ -13,7 +13,7 @@
  * 协议版本，与本包的 package.json 版本保持一致——两个版本号会让人永远猜不准
  * 该看哪个。服务在 `manifest.metadata.protocol_version` 里报告它遵循的版本。
  */
-export const PROTOCOL_VERSION = "0.4.0";
+export const PROTOCOL_VERSION = "0.5.0";
 
 /* ------------------------------------------------------------------ *
  * URI
@@ -177,11 +177,32 @@ export interface SkillDescriptor {
   metadata?: Record<string, unknown>;
 }
 
+/** 服务调用方式：cli=仅命令行；http=仅常驻HTTP；hybrid=双模兼容，优先CLI。 */
+export type ExecutionMode = "cli" | "http" | "hybrid";
+
+/** 服务启停生命周期规范，声明能否被网关按需拉起或关闭。 */
+export interface ServiceLifecycle {
+  /** 如何拉起该服务的常驻进程（如 'transcribe serve --port 7782'）。 */
+  start_command?: string;
+  /** 如何通过 HTTP 关闭该服务（如 '/shutdown'）。 */
+  stop_endpoint?: string;
+  /** 是否支持被 node agent 自动拉起。 */
+  can_spawn?: boolean;
+  /** 是否支持被 node agent 请求关闭。 */
+  can_shutdown?: boolean;
+}
+
 export interface Service {
   id: string;
   name?: string | null;
   /** 省略等同于 `"generic"` */
   kind?: ServiceKind;
+  /** 服务调用模式：cli | http | hybrid（默认 hybrid）。 */
+  execution?: ExecutionMode;
+  /** 执行指令或可执行文件名称（如 'transcribe'）。 */
+  command?: string;
+  /** 服务的启停生命周期控制参数。 */
+  lifecycle?: ServiceLifecycle;
   /**
    * @deprecated 历史遗留字段，新服务请直接使用 `methods` 与 `skills`。
    */
@@ -197,7 +218,7 @@ export interface Service {
    * 声明而**不做代理**——调用方看到 `localhost` 就知道不用白跑一趟。
    */
   reachability?: Reachability;
-  /** 实际监听端口。不必等于 {@link DEFAULT_PORTS} 里的默认值。 */
+  /** 实际监听端口。纯 CLI 模式可省略。不必等于 {@link DEFAULT_PORTS} 里的默认值。 */
   port?: number | null;
   /** 存活探测路径，默认 `/health`。 */
   health?: string | null;

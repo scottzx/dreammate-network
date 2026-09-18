@@ -151,6 +151,42 @@
       ],
       "description": "这个 Service 能被谁连上。localhost=只监听回环，外部节点发现得了但连不上；network=监听 0.0.0.0 或 tailnet 地址，外部可直连。node agent 如实转述服务自己的声明，不做代理——调用方看到 localhost 就知道不用白跑一趟。省略时按 network 理解。"
     },
+    "execution": {
+      "type": "string",
+      "enum": [
+        "cli",
+        "http",
+        "hybrid"
+      ],
+      "default": "hybrid",
+      "description": "服务调用执行模式：cli=仅本地命令行；http=仅常驻HTTP服务；hybrid=双模兼容，优先本地CLI执行，亦可按需拉起常驻HTTP。"
+    },
+    "command": {
+      "type": "string",
+      "description": "execution 为 cli 或 hybrid 时对应的执行指令或可执行文件名称（如 'transcribe'）。"
+    },
+    "lifecycle": {
+      "type": "object",
+      "description": "服务启停生命周期规范，声明能否被网关按需拉起和关闭及对应参数。",
+      "properties": {
+        "start_command": {
+          "type": "string",
+          "description": "如何拉起该服务的常驻进程（如 'transcribe serve --port 7782'）。"
+        },
+        "stop_endpoint": {
+          "type": "string",
+          "description": "如何通过 HTTP 关闭该服务（如 '/shutdown'）。"
+        },
+        "can_spawn": {
+          "type": "boolean",
+          "description": "是否支持被 node agent 自动拉起。"
+        },
+        "can_shutdown": {
+          "type": "boolean",
+          "description": "是否支持被 node agent 请求关闭。"
+        }
+      }
+    },
     "port": {
       "type": [
         "integer",
@@ -158,7 +194,7 @@
       ],
       "minimum": 1,
       "maximum": 65535,
-      "description": "服务实际监听的端口。向本机 node agent 报备时带上，外部才知道该连哪儿；它不必等于 DEFAULT_PORTS 里的默认值。"
+      "description": "服务实际监听的端口。向本机 node agent 报备时带上，外部才知道该连哪儿；纯 CLI 模式可省略。"
     },
     "health": {
       "type": [
