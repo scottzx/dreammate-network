@@ -149,7 +149,7 @@
         "localhost",
         "network"
       ],
-      "description": "这个 Service 能被谁连上。localhost=只监听回环，外部节点发现得了但连不上；network=监听 0.0.0.0 或 tailnet 地址，外部可直连。node agent 如实转述服务自己的声明，不做代理——调用方看到 localhost 就知道不用白跑一趟。省略时按 network 理解。"
+      "description": "服务自己怎么监听。localhost=只绑回环，外部不能直连其端口；network=监听 0.0.0.0 或 tailnet 地址，外部可直连。node agent 在 manifest 里如实转述。跨节点调用走 agent 的统一入口（POST /services/:id/invoke 或 MCP dreammate_invoke），由本机 agent 转发到回环 HTTP 或 CLI。省略时按 network 理解。"
     },
     "execution": {
       "type": "string",

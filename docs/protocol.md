@@ -1,4 +1,4 @@
-# DreamMate Network Protocol v0.1.0
+# DreamMate Network Protocol v0.5.0
 
 > L0 协议层。**零依赖，不含业务逻辑。**
 > 设计依据：1agents 工作区的 `docs/architecture/dreammate-network/`（10 篇设计册，不随本包发布）
@@ -7,6 +7,10 @@
 ## 1. 定位
 
 **DreamMate Network 不是 Agent Network，是 Capability Network。**
+它让设备和软件向智能体公开自己的能力，并提供统一的发现与调用入口。
+
+运行时入口是每台机器上的 `@1agents/dreammate-node`：负责**登记、发现、执行调用**。
+什么时候处理新录音、如何判断客户、如何生成跟进事项，仍由业务流程或智能体承担。
 
 - **Agent** 负责思考与编排
 - **设备 / 节点** 负责提供能力与数据
@@ -159,34 +163,42 @@ pull 要知道探哪儿，所以端口是公共词汇的一部分：
 ### 本机 node agent
 
 每台机器跑一个 `@1agents/dreammate-node`，固定监听 **36908**。它是这台机器
-对网络的唯一入口：
+对网络的唯一入口：设备和软件向它登记能力，智能体通过它发现并调用。
 
 ```
-        Control Plane / 任意节点
+        Control Plane / 任意节点 / 智能体
                   │  探 36908（每台机器只探一个端口）
                   ▼
         node-agent :36908
-         ├─ GET  /manifest      本机聚合视图：节点身份 + 所有已报备的服务
+         ├─ GET  /manifest                      本机聚合视图：节点身份 + 已报备服务
          ├─ GET  /health
-         ├─ GET  /services      各服务的存活与可达性
-         └─ POST /services      服务报备（**仅接受 localhost**）
+         ├─ GET  /nodes                         本 tailnet 内的设备节点
+         ├─ GET  /services                      各服务的存活与可达性
+         ├─ POST /services                      服务报备（**仅接受 localhost**）
+         ├─ POST /services/:id/invoke           统一调用（转发到本机 HTTP 或 CLI）
+         ├─ POST /capabilities/:name/invoke
+         ├─ POST /services/:id/start|stop       部分服务的启停
+         └─ GET  /services/:id/skills/:name/archive
                   ▲
       ┌───────────┴───────────┐  localhost 报备
  session-reader :7777    task-service :xxxx
 ```
 
-这把 pull 探测的成本从「N 个节点 × M 个端口」降到「N × 1」。
+这把 pull 探测的成本从「N 个节点 × M 个端口」降到「N × 1」，
+并把「找到能力」和「执行调用」收成同一个入口。
 
 **报备是可选的。** 服务不报备也能工作，只是外部得靠约定端口才找得到它。
-报备时必须声明**可达性**：
+报备时必须声明**可达性**——这描述的是服务自己怎么监听，不是「能不能被调用」：
 
 | `reachability` | 含义 |
 |---|---|
-| `localhost` | 只监听回环，外部节点发现得了但连不上 |
-| `network` | 监听 0.0.0.0 或 tailnet 地址，外部可直连 |
+| `localhost` | 服务只监听回环，外部节点**不能直连其端口** |
+| `network` | 服务监听 0.0.0.0 或 tailnet 地址，外部可直连 |
 
-agent 如实转述这个声明，**不做代理**。调用方看到 `localhost` 就知道这个能力
-只对本机开放，不用白跑一趟。
+agent 在 manifest 里如实转述这个声明。跨节点调用走 agent 自己的统一入口
+（`POST /services/:id/invoke` 或 MCP `dreammate_invoke`）：本机 agent 把请求
+转发到回环 HTTP 或本机命令，调用方不必直连服务端口。因此
+`reachability: localhost` 的服务仍然可以被远端智能体使用。
 
 > ⚠️ `POST /services` 只接受来自回环的请求。否则网络上任何人都能往你的节点
 > 里塞一个假服务，把调用方引到别处去。
@@ -356,5 +368,5 @@ npx -p ajv-cli@5 -p ajv-formats@2 ajv validate --spec=draft2020 -c ajv-formats \
 
 ## 12. 版本
 
-`PROTOCOL_VERSION = "0.1.0"`。v0.x 期间 schema 可能破坏性变更，
+`PROTOCOL_VERSION = "0.5.0"`，与 `package.json` 同步。v0.x 期间 schema 仍可能破坏性变更，
 以设计册 06-实施路线图的 M1–M5 验收结果为准收敛。

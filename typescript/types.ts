@@ -214,8 +214,10 @@ export interface Service {
   resources?: ResourceDescriptor[];
   access?: AccessDescriptor[];
   /**
-   * 只监听回环的服务，外部节点发现得了但连不上。node agent 如实转述这个
-   * 声明而**不做代理**——调用方看到 `localhost` 就知道不用白跑一趟。
+   * 服务自己怎么监听。`localhost` = 只绑回环，外部不能直连其端口；
+   * `network` = 可被外部直连。node agent 在 manifest 里如实转述。
+   * 跨节点调用走 agent 的统一入口（`POST /services/:id/invoke` 或
+   * MCP `dreammate_invoke`），由本机 agent 转发到回环 HTTP 或 CLI。
    */
   reachability?: Reachability;
   /** 实际监听端口。纯 CLI 模式可省略。不必等于 {@link DEFAULT_PORTS} 里的默认值。 */
